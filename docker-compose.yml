@@ -1,0 +1,30 @@
+services:
+  retention-api:
+    build: .
+    image: retention-policy-service:1.0.0
+    container_name: retention-api
+    ports:
+      - "8000:8000"
+    environment:
+      # 必要配置（均有默认值，以下为显式示例）
+      RETENTION_DB_PATH: /data/retention.db
+      RETENTION_SEED_SAMPLE: "true"
+      RETENTION_DEFAULT_DAYS: "90"
+      # 敏感度等级，从低到高，逗号分隔，修改后需重建空库
+      RETENTION_SENSITIVITY_LEVELS: "public,internal,confidential,secret"
+    volumes:
+      - retention-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import json,urllib.request,sys; r=urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=2); sys.exit(0 if r.status==200 and json.load(r)['status']=='ok' else 1)"
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  retention-data:
